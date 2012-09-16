@@ -110,7 +110,7 @@ Mapped:         22061628 kB
 `total_available_pages*dirty_ratio`只有400多M，说明线上确实出现了我
 们担心的阻塞式写脏页问题。
 
-## 线下复现
+## 再次线下复现
 
 在线下的NDB测试环境中，通过一个测试程序，将几十G的文件mmap到内存中，并
 且不断的对该文件进行扫描，发现meminfo中`Mapped`的数值在飞涨，直到满足
@@ -121,9 +121,7 @@ Mapped:         22061628 kB
 
 ```c
 fd = open(argv[1], O_RDWR);
-  
 fstat(fd, &sb);
-
 p = mmap(0, sb.st_size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0); 
 offset = 0;
 while(1) {
