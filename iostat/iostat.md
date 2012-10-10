@@ -21,16 +21,17 @@ read/write requests merged per second，即每秒钟merge的读/写请求次数�
 
 ### r/s w/s
 
-read/write requests per second，即每秒钟读/写请求次数。
+read/write requests per second，即磁盘每秒钟完成的读/写请求次数。
 
 ### rsec/s wsec/s及rkB/s wkB/s
 
-read/write sectors/kBs per seconds，即每秒读/写的数据量的大小，单位为
+read/write sectors/kBs per seconds，即磁盘每秒完成的读/写的数据量的大小，单位为
 扇区或者kB。该数值可以反映出磁盘的整体吞吐。
 
 ### avgqu-sz
 
-average queue size，即平均请求队列长度。如果这个值比较小，那么你的系统
+average queue size，即平均请求队列长度。在系统中大多数请求为读时
+如果这个值比较小，那么你的系统
 要么压力很小，要么大多数请求都是串行的（比如读请求）；反之，如果这个值
 比较大，则说明你的上层应用能够充分的利用底层的磁盘，但是这种情况下其实
 是在牺牲请求处理时间还换取更大的带宽。
@@ -82,3 +83,4 @@ io操作，导致磁盘要进行大量的寻道，极大的降低处理效率。
 那么很有可能是磁盘出现了硬件故障。
 
 
+![](random_read.png)
