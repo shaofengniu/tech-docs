@@ -3,8 +3,8 @@
 `iostat`通过采集`/proc/diskstats`中的数据并进行解析来对系统的io状况进
 行展示，是我们在对系统io性能进行分析时最重要的工具之一。
 
-可以在[](http://sebastien.godard.pagesperso-orange.fr/)下载其各个版本
-的源码。
+如果有兴趣，可以在 http://sebastien.godard.pagesperso-orange.fr/ 下载
+其各个版本的源码。
 
 其基本用法如下:
 
