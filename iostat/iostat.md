@@ -83,4 +83,4 @@ io操作，导致磁盘要进行大量的寻道，极大的降低处理效率。
 那么很有可能是磁盘出现了硬件故障。
 
 
-![](./random_read.png)
+![](https://github.com/shaofengniu/tech-docs/blob/master/iostat/random_read.png)
