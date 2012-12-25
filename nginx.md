@@ -67,7 +67,74 @@ kequeue，select中的具体实现
 `ngx_event_process_posted`的逻辑非常简单，只是对每一个event调用其自身
 的handler进行处理(`ev->handler(ev)`)。
 
-nginx的这种处理方式使其线程模型，事件逻辑和应用逻辑完全解耦合。
+*nginx的这种处理方式使其线程模型，事件逻辑和应用逻辑完全解耦合。*
+
+接下来，我们以`ngx_epoll_module.c`为例，分析一下底层的event engine的工
+作机制。
+
+# event/modules/ngx_epoll_module.c
+
+在`ngx_event_module_t ngx_epoll_module_ctx`的定义中，我们看到底层的
+event engine需要提供的一些通用接口，如添加、删除、处理事件等。
+
+*似乎每个module中都会提供一些commands，如ngx_epoll_commands，暂时不了
+ 解其作用。*
+ 
+在分析epoll_module中的各个接口之前，先顺便看一眼`struct
+ngx_event_s`（event/ngx_event.h)的定义：
+
+* `void *data`存放该事件相关的private data
+* `unsigned write:1, accept:1`事件类型，但是为啥没有read?
+* `unsigned active:1, disable:1`事件状态
+* `ngx_event_handler_pt handler`处理函数指针
+
+其他field我们暂时跳过，之后涉及到的时候再做分析。
+
+## ngx_epoll_add_event
+
+函数签名为
+
+```c
+ngx_epoll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t
+flags)
+```
+
+其中`ev`为外部创建好的事件结构，event用来区分是读还是写，flags则用来控
+制一些额外的属性。
+
+这个函数的流程如下：
+
+1. `ngx_connection_t *c = ev->data`，取出该event相关联的connection
+2. 获取与该connection相关联的上一个不同类型事件，如果该事件为active，
+则与当前添加的时间一并作为新的时间类型
+3. 调用`epoll_ctl`进行设置
+
+## ngx_epoll_process_events
+
+此函数处理流程如下：
+
+1. 使用`epoll_wait`获取当前active的事件
+2. 根据`flags & NGX_POST_EVENTS`来判断是直接调用事件对应的handler进行
+处理，还是将该事件放入`ngx_posted_accepted_events`或
+`ngx_posted_events`中稍后进行处理。
+
+这里提一下在获取event关联的两个变量的时候的一个trick：
+
+```c
+c = event_list[i].data.ptr;
+instance = (uintptr_t) c & 1;
+c = (ngx_connection_t *) ((uintptr_t) c & (uintptr_t) ~1);
+```
+
+根据`ngx_event_s`中的定义，`instance`是一个1bit的field，而
+`ngx_connection_t *c`的低3位一定为0（指针以4或8bytes对齐），所以在存放
+的时候就可以如下：
+
+```c
+ee.data.ptr = (void *) ((uintptr_t) c | ev->instance);
+```
+
+至于`instance`的具体作用，现在还不知道……
 
 
 
