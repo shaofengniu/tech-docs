@@ -136,6 +136,53 @@ ee.data.ptr = (void *) ((uintptr_t) c | ev->instance);
 
 至于`instance`的具体作用，现在还不知道……
 
+现在我们回过头来看一下几种event的具体处理流程是怎样的。首先是accept
+event，从文件名来看应该是定义在`event/ngx_event_accept.c`中的
+`ngx_event_accept`，然后根据这个符号出现的位置找到
+`event/ngx_event.c`中的`ngx_event_process_init`，然后这个函数作为
+`ngx_module_t ngx_event_core_module`的一部分，将在ngx初始化的时候被调
+用。
+
+## ngx_event_process_init
+
+我们暂时不关心这个函数中的大部分初始化工作，他会对
+`cycle->listening.elts`中的每一个需要监听的socket创建一个connection，
+然后将其handler设置为`ngx_event_accept`，然后将其加入event engine中。
+
+## ngx_event_accept
+
+accept的流程如下：
+
+1. 判断该时间是由io触发还是timeout触发，如果是timeout触发，则调用
+`ngx_enable_accept_events`，接受accept事件
+2. 设定`ev->available`的数值，即该次事件处理需要连续accept多少个连接
+3. accept socket
+4. 处理accept异常返回，如果errno为`EMFILE`或者`ENFILE`的话，说明当前连
+接数过多，需要屏蔽accept事件一段时间
+5. 如果accept成功，则从连接池中创建一个新连接
+6. 调用与这个listening socket相关联的handler处理该连接：
+`ls->handler(c)`
+7. 如果`ev->available`大于0，则跳转到第3步
+
+我们现在来关注一下6中与`ngx_listening_t`相关联的handler。
+
+首先，`ngx_listening_t`定义在`ngx_connection.h`中，然后在该文件中，我
+们找到了一个与`ngx_listening_t`相关的函数：`ngx_create_listening`。但
+是这个函数中只是对`ngx_listening_t`进行了一些最基本的初始化，并没有对
+`handler`进行赋值，所以我们需要查看一下nginx都在哪里调用了这个函数。
+
+结果是在`http/ngx_http.c/ngx_http_add_listening`和
+`src/mail/ngx_mail.c/ngx_mail_optimize_servers`两个地方分别将
+`handler`赋值为`ngx_http_init_connection`和`ngx_mail_init_connection`。
+由此可见，该`handler`的工作是进行一些与具体协议相关的初始化工作。这里
+需要注意，是由这个`handler`根据具体协议的需求，将这个connection放入
+event loop中。
+
+
+
+
+
+
 
 
 
